@@ -1,0 +1,10 @@
+<!-- Before running this  launch file, please run sudo apt-get install ros-kinetic-teleop-twist-keyboard -->
+<!-- To run it, go to this launch file's directory, and type 
+
+roslaunch basicTeleop.launch
+
+(We assume that the amazon-warehoue.world is already running in the background)
+-->
+<launch>
+	<node pkg="teleop_twist_keyboard" name="teleop_twist_keyboard" type="teleop_twist_keyboard.py" output="screen"/>
+</launch>
