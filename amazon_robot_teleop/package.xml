@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<package>
+  <name>amazon_robot_teleop</name>
+  <version>0.6.1</version>
+  <description>Adapted from teleop_twist_keyboard ros package.</description>
+  <maintainer email="arsalanakhter.wpi@gmail.com">Arsalan Akhter</maintainer>
+<!--
+
+  <url type="website">http://wiki.ros.org/teleop_twist_keyboard</url>
+-->
+  <license>BSD</license>
+
+  <author>Graylin Trevor Jay</author>
+  <author>Arsalan Akhter</author>
+
+  <buildtool_depend>catkin</buildtool_depend>
+  <run_depend>geometry_msgs</run_depend>
+  <run_depend>rospy</run_depend>
+</package>
