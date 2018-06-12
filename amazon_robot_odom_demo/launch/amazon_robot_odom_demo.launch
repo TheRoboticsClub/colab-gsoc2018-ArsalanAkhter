@@ -1,0 +1,3 @@
+<launch>
+	<node pkg="amazon_robot_odom_demo" name="demo" type="amazon_robot_odom_demo_node"/>
+</launch>
