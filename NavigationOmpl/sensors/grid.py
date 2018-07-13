@@ -23,6 +23,8 @@ class Grid:
 		self.grid = np.empty([self.gWidth, self.gHeight], float)
 		self.path = np.zeros([self.gWidth, self.gHeight])
 
+		self.worldPathArraySmooth = 0;
+		self.worldPathArrayIdx = 0;
 
 	def initPose(self, x, y, angle):
 		print("RX:", x, "RY:", y)
@@ -170,6 +172,29 @@ class Grid:
 		self.lock.acquire()
 		self.grid[y][x] = val
 		self.lock.release()
+
+	def setWorldPathArray(self, worldPathArray):
+		self.lock.acquire()
+		self.worldPathArraySmooth = worldPathArray
+		self.lock.release()
+
+	def getWorldPathArray(self):
+		self.lock.acquire()
+		tmp = self.worldPathArraySmooth
+		self.lock.release()
+		return tmp
+
+
+	def setWorldPathArrayIdx(self, worldPathArrayIdx):
+		self.lock.acquire()
+		self.worldPathArrayIdx = worldPathArrayIdx
+		self.lock.release()
+
+	def getWorldPathArrayIdx(self):
+		self.lock.acquire()
+		tmp = self.worldPathArrayIdx
+		self.lock.release()
+		return tmp
 
 	def resetPath(self):
 		self.lock.acquire()
