@@ -17,10 +17,12 @@ L = 0.675/2  # [m] wheel base of vehicle
 show_animation = False
 class State:
 
-    def __init__(self, x=0.0, y=0.0, yaw=0.0, v=0.0, w=0.0):
+    def __init__(self, x=0.0, y=0.0, yaw=0.0, r = 0.0, phi = 0.0, v=0.0, w=0.0,):
         self.x = x
         self.y = y
         self.yaw = yaw
+        self.r = r
+        self.phi = phi
         self.v = v
         self.w = w
 
@@ -36,7 +38,7 @@ def update_state(state, a, delta):
         state.yaw += 6.28
     state.v = state.v + a * dt
     state.w = state.w + delta * dt
-
+    state.r, state.phi = cartesian_to_polar(state.x, state.y)
     return state
 
 
@@ -99,71 +101,12 @@ def calc_target_index(state, cx, cy):
 
     return ind
 
+def cartesian_to_polar(x, y):
+    r = np.sqrt(x ** 2 + y ** 2)
+    phi = np.arctan2(y, x)
+    return (r, phi)
 
-def pure_pursuit():
-    #  target course
-    cx = np.arange(0, 50, 0.1)
-    cy = [math.sin(ix / 5.0) * ix / 2.0 for ix in cx]
-
-    target_speed = 10.0 / 3.6  # [m/s]
-
-    T = 100.0  # max simulation time
-
-    # initial state
-    state = State(x=-0.0, y=-3.0, yaw=0.0, v=0.0)
-
-    lastIndex = len(cx) - 1
-    time = 0.0
-    x = [state.x]
-    y = [state.y]
-    yaw = [state.yaw]
-    v = [state.v]
-    t = [0.0]
-    target_ind = calc_target_index(state, cx, cy)
-
-    while T >= time and lastIndex > target_ind:
-        ai = PIDControl(target_speed, state.v)
-        di, target_ind = pure_pursuit_control(state, cx, cy, target_ind)
-        state = update_state(state, ai, di)
-
-        time = time + dt
-
-        x.append(state.x)
-        y.append(state.y)
-        yaw.append(state.yaw)
-        v.append(state.v)
-        t.append(time)
-
-        if show_animation:
-            plt.cla()
-            plt.plot(cx, cy, ".r", label="course")
-            plt.plot(x, y, "-b", label="trajectory")
-            plt.plot(cx[target_ind], cy[target_ind], "xg", label="target")
-            plt.axis("equal")
-            plt.grid(True)
-            plt.title("Speed[km/h]:" + str(state.v * 3.6)[:4])
-            plt.pause(0.001)
-
-    # Test
-    assert lastIndex >= target_ind, "Cannot goal"
-
-    if show_animation:
-        plt.plot(cx, cy, ".r", label="course")
-        plt.plot(x, y, "-b", label="trajectory")
-        plt.legend()
-        plt.xlabel("x[m]")
-        plt.ylabel("y[m]")
-        plt.axis("equal")
-        plt.grid(True)
-
-        flg, ax = plt.subplots(1)
-        plt.plot(t, [iv * 3.6 for iv in v], "-r")
-        plt.xlabel("Time[s]")
-        plt.ylabel("Speed[km/h]")
-        plt.grid(True)
-        plt.show()
-
-
-if __name__ == '__main__':
-    print("Pure pursuit path tracking simulation start")
-    pure_pursuit()
+def polar_to_cartesian(r, phi):
+    x = r * np.cos(phi)
+    y = r * np.sin(phi)
+    return (x, y)

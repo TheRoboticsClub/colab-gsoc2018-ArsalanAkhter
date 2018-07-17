@@ -1,5 +1,3 @@
-from referee import distanceWidget
-from sensors import sensor
 import numpy as np
 import cv2
 import math
@@ -13,8 +11,25 @@ from scipy.ndimage import gaussian_filter1d
 from purePursuit import State, calc_target_index, PIDControl, pure_pursuit_control, update_state
 import matplotlib.pyplot as plt
 
-
 time_cycle = 80
+
+def clearscreen(numlines=10):
+    """Clear the console.
+    numlines is an optional argument used only as a fall-back.
+    """
+    import os
+    if os.name == "posix":
+        # Unix/Linux/MacOS/BSD/etc
+        os.system('clear')
+    elif os.name in ("nt", "dos", "ce"):
+        # DOS/Windows
+        os.system('CLS')
+    else:
+        # Fallback for other operating systems.
+        print '\n' * numlines
+
+
+
 
 class MyAlgorithm(threading.Thread):
 
@@ -131,11 +146,11 @@ class MyAlgorithm(threading.Thread):
 
             self.grid.setPathFinded()
             worldPathArraySmoothTmp = np.array(worldPathList)
-            #sigma = 10
-            #worldPathArraySmoothTmp[0] = gaussian_filter1d(worldPathArraySmoothTmp[0], sigma)
-            #worldPathArraySmoothTmp[1] = gaussian_filter1d(worldPathArraySmoothTmp[1], sigma)
-            worldPathArraySmoothTmp[0] = worldPathArraySmoothTmp[0]
-            worldPathArraySmoothTmp[1] = worldPathArraySmoothTmp[1]
+            sigma = 3
+            worldPathArraySmoothTmp[0] = gaussian_filter1d(worldPathArraySmoothTmp[0], sigma)
+            worldPathArraySmoothTmp[1] = gaussian_filter1d(worldPathArraySmoothTmp[1], sigma)
+            #worldPathArraySmoothTmp[0] = worldPathArraySmoothTmp[0]
+            #worldPathArraySmoothTmp[1] = worldPathArraySmoothTmp[1]
 
             print worldPathArraySmoothTmp
             self.grid.setWorldPathArray(worldPathArraySmoothTmp)
@@ -145,7 +160,15 @@ class MyAlgorithm(threading.Thread):
     """ Write in this mehtod the code necessary for going to the desired place,
         once you have generated the shorter path.
         This method will be periodically called after you press the GO! button. """
+    def cartesian_to_polar(self, x, y):
+        r = np.sqrt(x ** 2 + y ** 2)
+        phi = np.arctan2(y, x)
+        return (r, phi)
 
+    def polar_to_cartesian(self, r, phi):
+        x = r * np.cos(phi)
+        y = r * np.sin(phi)
+        return (x, y)
 
     def findTargetPose(self):
         worldPathArrayExecuting1 = self.grid.getWorldPathArray()
@@ -153,26 +176,19 @@ class MyAlgorithm(threading.Thread):
         return (worldPathArrayExecuting1[0][worldPathIdx1], worldPathArrayExecuting1[1][worldPathIdx1])
 
     def correct_yaw(self, req_yaw):
-        robot_yaw = self.sensor.getRobotTheta()
-        while abs(req_yaw - robot_yaw) > 0.1:
+        e = req_yaw - self.sensor.getRobotTheta()
+        while abs(e) > 0.05:
             clearscreen()
+            e = math.atan2(math.sin(e), math.cos(e))
             print "correcting robot yaw:"
             print "current yaw: " + str(self.sensor.getRobotTheta())
-            print "required yaw: " + str(req_yaw)
-            self.vel.setV(0)
-            yaw_diff = req_yaw - self.sensor.getRobotTheta()
-            if yaw_diff > 3.14:
-                yaw_diff -= 6.28
-            if yaw_diff < -3.14:
-                yaw_diff += 6.28
-            print "yaw_diff: " + str(yaw_diff)
-            # self.vel.setW(0.3*yaw_diff*state.w)
-            if (yaw_diff) > 0:
-                self.vel.setW(0.2 * yaw_diff)
-            else:
-                self.vel.setW(0.2 * yaw_diff)
-            # robot_yaw = self.sensor.getRobotTheta()
-            if abs(req_yaw - self.sensor.getRobotTheta()) <= 0.05:
+            print "required yaw: " + str(e)
+            print "yaw_diff: " + str(e)
+            alpha = 0.5
+            K = 1.5*(1 - math.exp(-alpha*math.pow(e,2)))/abs(e)
+            self.vel.setW(K * e)
+            e = req_yaw - self.sensor.getRobotTheta()
+            if abs(e) <= 0.05:
                 print "Robot yaw corrected."
                 self.vel.setW(0)
                 return
@@ -190,7 +206,7 @@ class MyAlgorithm(threading.Thread):
         cx_diff = np.diff(cx,2)
         cy_diff = np.diff(cy,2)
         # and then taking only non-zero points
-        # find indicies of all points that re non-zero in cx_diff
+        # find indicies of all points that are non-zero in cx_diff
         cx_nonzero_indicies = np.reshape(np.nonzero(cx_diff), -1)
         cy_nonzero_indicies = np.reshape(np.nonzero(cy_diff), -1)
         # Take a union of above indicies
@@ -206,13 +222,13 @@ class MyAlgorithm(threading.Thread):
         x = self.sensor.getRobotX()
         y = self.sensor.getRobotY()
         yaw = self.sensor.getRobotTheta()
-
-        state = State(x, y, yaw, v=0.0, w=0.0)
+        r, phi = self.cartesian_to_polar(x,y)
+        state = State(x, y, yaw, r, phi, v = 0.0, w = 0.0)
         prev_state = state
 
         # Find the goal point
         # Calculate the point on the path closest to the vehicle
-        # We already have a certain look-ahead distance (Lfc)
+        # We already have a certain look-ahead distance_diff (Lfc)
         # search look ahead target point index
         target_ind = calc_target_index(state, cx, cy)
 
@@ -227,193 +243,97 @@ class MyAlgorithm(threading.Thread):
         yaw = [state.yaw]
         v = [state.v]
         t = [0.0]
-        dt = 0.01
+        dt = 0.08
+        print "In Execute function"
         while T >= time and lastIndex > target_ind:
             clearscreen()
-            prev_yaw = state.yaw
-            prev_state = State(state.x, state.y, state.yaw, state.v, state.w)
+            prev_state = State(state.x, state.y, state.yaw,state.r, state.phi, state.v, state.w)
+            print "In 1st While loop."
             print "time" + str(time)
             print "last_ind: " + str(lastIndex)
             print "target_ind: " + str(target_ind)
-            ai = PIDControl(target_speed, state.v)
             print "target_speed: " + str(target_speed)
             print "curr_speed: " + str(state.v)
+            ai = PIDControl(target_speed, state.v)
             di, target_ind = pure_pursuit_control(state, cx, cy, target_ind)
             print "di: " + str(di)
-            print "prev_yaw: "+ str(prev_yaw)
+            print "prev_yaw: "+ str(prev_state.yaw)
             print "new_target_ind: " + str(target_ind)
             state = update_state(state, ai, di)
             print "state.yaw: " + str(state.yaw)
             print "state: " + str(state)
             time = time + dt
+            self.correct_yaw(state.yaw)
             if lastIndex == target_ind:
-                self.vel.setV(0)
-                self.vel.setW(0)
-                print "Target Location Reached."
-                #break
-
-            # Ensure that the robot reaches this new updated state
-            # First Ensure the Yaw
-            '''req_heading = math.atan2(state.y - prev_state.y, state.x - prev_state.x)
-            curr_heading = math.atan2(state.y - self.sensor.getRobotY(), state.x - self.sensor.getRobotX())
-            while req_heading-curr_heading < 0:
-                clearscreen()
-                print "correcting robot yaw:"
-                print "current yaw: " + str(self.sensor.getRobotTheta())
-                print "required yaw: " + str(state.yaw)
-                self.vel.setV(0)
-                self.vel.setW(0.5*(req_heading-curr_heading))
-                req_heading = math.atan2(state.y - prev_state.y, state.x - prev_state.x)
-                curr_heading = math.atan2(state.y - self.sensor.getRobotY(), state.x - self.sensor.getRobotX())
-                if req_heading == curr_heading:
-                    self.vel.setW(0)'''
-
-            robot_yaw = self.sensor.getRobotTheta()
-            while abs(state.yaw - robot_yaw) > 0.1:
-                clearscreen()
-                print "correcting robot yaw:"
-                print "current yaw: " + str(self.sensor.getRobotTheta())
-                print "required yaw: " + str(state.yaw)
-                self.vel.setV(0)
-                yaw_diff = state.yaw - self.sensor.getRobotTheta()
-                if yaw_diff > 3.14:
-                    yaw_diff -= 6.28
-                if yaw_diff < -3.14:
-                    yaw_diff += 6.28
-                print "yaw_diff: " + str(yaw_diff)
-                #self.vel.setW(0.3*yaw_diff*state.w)
-                if (yaw_diff) > 0:
-                    self.vel.setW(0.2*yaw_diff)
-                else:
-                    self.vel.setW(0.2*yaw_diff)
-                #robot_yaw = self.sensor.getRobotTheta()
-                if abs(state.yaw - self.sensor.getRobotTheta()) <= 0.1:
-                    print "Robot yaw corrected."
-                    self.vel.setW(0)
-                    break
-                    #self.vel.setV(target_speed)
-            old_distance = 0
-            distance = 0
+                while distance_diff > 0.01:
+                    alpha = 0.9
+                    K = 5 * (1 - math.exp(-alpha * math.pow(distance_diff, 2))) / abs(distance_diff)
+                    curr_vel = K * distance_diff
+                    self.vel.setV(curr_vel)
+                    curr_r, curr_phi = self.cartesian_to_polar(self.sensor.getRobotX(), self.sensor.getRobotY())
+                    end_loc_r, end_loc_phi = self.cartesian_to_polar(cx[lastIndex], cy[lastIndex])
+                    distance_diff = end_loc_r - curr_r
+                    clearscreen()
+                    print "Runnig last mile."
+                    print "Distance left: " +  str(distance_diff)
             # Then ensure the complete position
-            distance = math.sqrt(
-                    math.pow((state.x - self.sensor.getRobotX()), 2) + math.pow((state.y - self.sensor.getRobotY()), 2))
-            req_heading = math.atan2(state.y - prev_state.y, state.x - prev_state.x)
-            curr_heading =  math.atan2(state.y - self.sensor.getRobotY(), state.x - self.sensor.getRobotX())
-            #while abs(state.x - self.sensor.getRobotX()) > 0.05 and abs(state.y - self.sensor.getRobotY()) > 0.05:
-            while distance > 0.1:
+            # convert to polar
+            curr_r, curr_phi = self.cartesian_to_polar(self.sensor.getRobotX(), self.sensor.getRobotY())
+            distance_diff = state.r - curr_r
+            while distance_diff > 0.1:
                 clearscreen()  # For better printing
+                print "In 2nd While loop, distance correction."
                 print "Now Correcting robot location."
-                # Measure the distance between current location and target location
-                print "distance: " + str(distance)
-                # should we move forward or backward?
-                curr_vel = 0.5*state.v
+                # Measure the distance_diff between current location and target location
+                print "distance_diff: " + str(distance_diff)
+                alpha = 0.9
+                K = 10 * (1 - math.exp(-alpha * math.pow(distance_diff, 2))) / abs(distance_diff)
+                curr_vel = K * distance_diff
+                self.vel.setV(curr_vel)
+                print "last_ind: " + str(lastIndex)
+                print "target_ind: " + str(target_ind)
                 print "velocity: " + str(curr_vel)
-                print "req_heading: " + str(req_heading)
-                print "curr_heading: " + str(curr_heading)
-                print "diff_heading: " + str(req_heading-curr_heading)
+                print "req_heading: " + str(state.phi)
+                print "curr_heading: " + str(curr_phi)
+                print "diff_heading: " + str(state.phi-curr_phi)
                 print "curr_x: " + str (self.sensor.getRobotX())
                 print "curr_y: " + str(self.sensor.getRobotY())
                 print "req_x: " + str(state.x)
                 print "req_y: " + str(state.y)
                 print "prev_x: " + str(prev_state.x)
                 print "prev_y: " + str(prev_state.y)
-                self.vel.setV(curr_vel)
-                if abs(req_heading-curr_heading) > math.pi/2 and abs(req_heading-curr_heading) < 3*math.pi/2:
-                    # Correct Heading
-                    print "Coming back a bit."
-                    curr_vel = -0.1
-                    self.vel.setV(curr_vel)
-                    self.correct_yaw(req_heading)
-                distance = math.sqrt(
-                        math.pow((state.x - self.sensor.getRobotX()), 2) + math.pow((state.y - self.sensor.getRobotY()),
-                                                                                    2))
-                curr_heading = math.atan2(state.y - self.sensor.getRobotY(), state.x - self.sensor.getRobotX())
+                print "curr_r: " + str(state.r)
 
-                #if req_heading-curr_heading<0:
-                #    curr_vel = -0.05
-                #    self.vel.setV(curr_vel)
-                #    distance = math.sqrt(
-                #        math.pow((state.x - self.sensor.getRobotX()), 2) + math.pow((state.y - self.sensor.getRobotY()),
-                #                                                                    2))
-                #    curr_heading = math.atan2(state.y - self.sensor.getRobotY(), state.x - self.sensor.getRobotX())
+                curr_r, curr_phi = self.cartesian_to_polar(self.sensor.getRobotX(), self.sensor.getRobotY())
+                distance_diff = state.r - curr_r
 
-                #while heading < 0:
-                #    self.vel.setV(-0.2)
-                #    remaining_distance = math.sqrt(math.pow((state.x - self.sensor.getRobotX()), 2) + math.pow((state.y - self.sensor.getRobotY()),2))
-                #    heading = math.atan2((state.y - self.sensor.getRobotY()), (state.x - self.sensor.getRobotX()))
-                #    clearscreen()  # For better printing
-                #    print "remaining_distance: " + str(remaining_distance)
-                #    print "heading: " + str(heading)
-                '''if self.sensor.getRobotX() > 0 and self.sensor.getRobotY() > 0: # 4th Quadrant
-                    self.vel.setV(state.v)
-                elif self.sensor.getRobotX() < 0 and self.sensor.getRobotY() > 0: # 3rd Quadrant:
-                    self.vel.setV(state.v * -np.sign(heading))
-                elif self.sensor.getRobotX() < 0 and self.sensor.getRobotY() > 0: # 2nd Quadrant:
-                    self.vel.setV(state.v * -np.sign(heading))
-                else: # 1st Quadrant:
-                    self.vel.setV(state.v * np.sign(heading))
-                remaining_distance = math.sqrt(math.pow((state.x - self.sensor.getRobotX()),2) + math.pow((state.y - self.sensor.getRobotY()),2))
-                heading = math.atan2((state.y-self.sensor.getRobotY()), (state.x-self.sensor.getRobotX()))'''
-
-
-                # Check distance again
-                #distance = math.sqrt(math.pow((state.x - self.sensor.getRobotX()),2) + math.pow((state.y - self.sensor.getRobotY()),2))
-                #old_distance = distance
-                '''while distance > 0.1 and self.vel.getV() > 0:
-                    self.vel.setV(-0.2)
-                    #old_distance = distance
-                    distance = math.sqrt(math.pow((state.x - self.sensor.getRobotX()), 2) + math.pow((state.y - self.sensor.getRobotY()),2))
-                    print "Going back a bit."
-                    #print "old_distance = " + str(old_distance)
-                    print "distance = " + str(distance)
-                    #print "distance difference = " + str(old_distance - distance)
-
-                    #self.vel.setV(0)
-                while distance > 0.1 and self.vel.getV() < 0:
-                    self.vel.setV(target_speed)
-                    old_distance = distance
-                    distance = math.sqrt(math.pow((state.x - self.sensor.getRobotX()), 2) + math.pow((state.y - self.sensor.getRobotY()),2))
-                    print "Moving forward a bit."
-                    print "old_distance = " + str(old_distance)
-                    print "distance = " + str(distance)
-                    print "distance difference = " + str(old_distance - distance)
-
-                    #self.vel.setV(0)
-                while old_distance - distance < 0.0 and self.vel.getV() > 0:
-                    self.vel.setV(target_speed)
-                    old_distance = distance
-                    distance = math.sqrt(math.pow((state.x - self.sensor.getRobotX()), 2) + math.pow((state.y - self.sensor.getRobotY()),2))
-                    print "Moving forward a bit."
-                    print "old_distance = " + str(old_distance)
-                    print "distance = " + str(distance)
-                    print "distance difference = " + str(old_distance - distance)
-
-                    #self.vel.setV(0)
-                while old_distance - distance < 0.0 and self.vel.getV() < 0:
-                    self.vel.setV(-0.2)
-                    old_distance = distance
-                    distance = math.sqrt(math.pow((state.x - self.sensor.getRobotX()), 2) + math.pow((state.y - self.sensor.getRobotY()),2))
-                    print "Going back a bit."
-                    print "old_distance = " + str(old_distance)
-                    print "distance = " + str(distance)
-                    print "distance difference = " + str(old_distance - distance)
-
-                    #self.vel.setV(0)'''
-                if abs(state.x - self.sensor.getRobotX()) <= 0.1 and abs(state.y - self.sensor.getRobotY()) <= 0.1:
+                if distance_diff <= 0.1:
                     print "Robot location corrected."
-                    self.vel.setV(0)
                     break
+            if lastIndex == target_ind:
+                while distance_diff > 0.01:
+                    alpha = 0.9
+                    K = 5 * (1 - math.exp(-alpha * math.pow(distance_diff, 2))) / abs(distance_diff)
+                    curr_vel = K * distance_diff
+                    self.vel.setV(curr_vel)
+                    curr_r, curr_phi = self.cartesian_to_polar(self.sensor.getRobotX(), self.sensor.getRobotY())
+                    end_loc_r, end_loc_phi = self.cartesian_to_polar(cx[lastIndex], cy[lastIndex])
+                    distance_diff = end_loc_r - curr_r
+                    clearscreen()
+                    print "Runnig last mile."
+                    print "Distance left: " +  str(distance_diff)
+
+                self.vel.setV(0)
+                self.vel.setW(0)
+                print "Target Location Reached."
+
 
             x.append(state.x)
             y.append(state.y)
             yaw.append(state.yaw)
             v.append(state.v)
             t.append(time)
-            #self.vel.setV(state.v)
-            #if abs(di) > 0.05:
-            #    self.vel.setW(state.v*(di))
-            #else:
-            #    self.vel.setW(0.00)
+
             if show_animation:
                 plt.cla()
                 plt.plot(cx, cy, ".r", label="course")
@@ -421,12 +341,8 @@ class MyAlgorithm(threading.Thread):
                 plt.plot(cx[target_ind], cy[target_ind], "xg", label="target")
                 plt.axis("equal")
                 plt.grid(True)
-                plt.title("Speed[km/h]:" + str(state.v * 3.6)[:4])
+                plt.title("Speed[m/s]:" + str(state.v)[:4])
                 plt.pause(0.001)
-        if abs(cx[lastIndex] - self.sensor.getRobotX()) < 0.15 and abs(cy[lastIndex] - self.sensor.getRobotY()) < 0.15:
-            self.vel.setV(0)
-            self.vel.setW(0)
-            print "Target Location Reached."
 
         if show_animation:
             plt.plot(cx, cy, ".r", label="course")
@@ -444,62 +360,6 @@ class MyAlgorithm(threading.Thread):
             plt.grid(True)
             plt.show()
 
-        '''TargetPose = self.findTargetPose()
-        print TargetPose
-
-        print TargetPose
-        #TargetPose = self.findTargetPose(x,y)
-        yaw = math.atan2(TargetPose[1]-y,TargetPose[0]-x)
-        yaw_diff = yaw - theta
-        dis = math.sqrt(pow(x-TargetPose[0],2)+pow(y-TargetPose[1],2))
-
-        epsilon = 0.1
-        Kp = 0.35
-        if yaw_diff > 3.14:
-            yaw_diff -= 6.28
-        if yaw_diff < -3.14:
-            yaw_diff += 6.28
-
-        # Apply controller here
-        if yaw_diff > epsilon or yaw_diff < -epsilon:
-            v = 0
-            w = Kp*yaw_diff
-        else:
-            v = dis*1
-            if v < 0.1:
-                v = 0.1
-            w = 0
-        print "Target Pose: " + str(TargetPose)
-        print "Yaw Difference: " + str(yaw_diff)
-        # self.vel.setV(v)
-
-        if abs(x - TargetPose[0]) < 0.01 and abs(y - TargetPose[1]) < 0.01:
-            if self.worldPathIdx < len(self.grid.worldPathArraySmooth)-2:
-                self.grid.setWorldPathArrayIdx(self.grid.worldPathArrayIdx+1)
-                TargetPose = self.findTargetPose()
-                print "Target Pose Updated."
-            else:
-                v = 0
-                w = 0
-                print "Target Reached."'''
-
-
         #EXAMPLE OF HOW TO SEND INFORMATION TO THE ROBOT ACTUATORS
-
-
-def clearscreen(numlines=10):
-    """Clear the console.
-    numlines is an optional argument used only as a fall-back.
-    """
-    import os
-    if os.name == "posix":
-        # Unix/Linux/MacOS/BSD/etc
-        os.system('clear')
-    elif os.name in ("nt", "dos", "ce"):
-        # DOS/Windows
-        os.system('CLS')
-    else:
-        # Fallback for other operating systems.
-        print '\n' * numlines
 
 
