@@ -1,7 +1,7 @@
 import numpy as np
 import cv2
 import math
-
+from sensors import sensor
 import threading
 import time
 from datetime import datetime
@@ -177,7 +177,8 @@ class MyAlgorithm(threading.Thread):
 
     def correct_yaw(self, req_yaw):
         e = req_yaw - self.sensor.getRobotTheta()
-        while abs(e) > 0.05:
+        if abs(e) > 0.05:
+            self.vel.setV(0)
             clearscreen()
             e = math.atan2(math.sin(e), math.cos(e))
             print "correcting robot yaw:"
@@ -245,7 +246,7 @@ class MyAlgorithm(threading.Thread):
         t = [0.0]
         dt = 0.08
         print "In Execute function"
-        while T >= time and lastIndex > target_ind:
+        if T >= time and lastIndex > target_ind:
             clearscreen()
             prev_state = State(state.x, state.y, state.yaw,state.r, state.phi, state.v, state.w)
             print "In 1st While loop."
@@ -264,8 +265,11 @@ class MyAlgorithm(threading.Thread):
             print "state: " + str(state)
             time = time + dt
             self.correct_yaw(state.yaw)
+            curr_r, curr_phi = self.cartesian_to_polar(self.sensor.getRobotX(), self.sensor.getRobotY())
+            end_loc_r, end_loc_phi = self.cartesian_to_polar(cx[lastIndex], cy[lastIndex])
+            distance_diff = end_loc_r - curr_r
             if lastIndex == target_ind:
-                while distance_diff > 0.01:
+                if distance_diff > 0.01:
                     alpha = 0.9
                     K = 5 * (1 - math.exp(-alpha * math.pow(distance_diff, 2))) / abs(distance_diff)
                     curr_vel = K * distance_diff
@@ -280,7 +284,7 @@ class MyAlgorithm(threading.Thread):
             # convert to polar
             curr_r, curr_phi = self.cartesian_to_polar(self.sensor.getRobotX(), self.sensor.getRobotY())
             distance_diff = state.r - curr_r
-            while distance_diff > 0.1:
+            if distance_diff > 0.1:
                 clearscreen()  # For better printing
                 print "In 2nd While loop, distance correction."
                 print "Now Correcting robot location."
@@ -309,9 +313,9 @@ class MyAlgorithm(threading.Thread):
 
                 if distance_diff <= 0.1:
                     print "Robot location corrected."
-                    break
+                    #break
             if lastIndex == target_ind:
-                while distance_diff > 0.01:
+                if distance_diff > 0.01:
                     alpha = 0.9
                     K = 5 * (1 - math.exp(-alpha * math.pow(distance_diff, 2))) / abs(distance_diff)
                     curr_vel = K * distance_diff
