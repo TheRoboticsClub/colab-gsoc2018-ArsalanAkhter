@@ -27,6 +27,8 @@ from gui.teleopWidget import TeleopWidget
 from gui.communicator import Communicator
 from gui.mapWidget import Map
 from gui.logoWidget import LogoWidget
+import rospy
+from std_msgs.msg import Float32
 
 class MainWindow(QMainWindow, Ui_MainWindow):
     
@@ -55,6 +57,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.plannerBox.addItems(plannerList)
         # objectiveList = ['PathClearance', 'PathLength', 'ThresholdPathLength', 'WeightedLengthAndClearanceCombo']
         # self.objectiveBox.addItems(objectiveList)
+        self.liftDropButton.clicked.connect(self.liftDropExecute)
+        self.liftDropButton.setCheckable(True)
+        self.jointForce = 0
+        self.pub = rospy.Publisher('amazon_warehouse_robot/joint_cmd', Float32, queue_size=10)
 
     def setSensor(self, sensor):
         self.sensor = sensor
@@ -152,3 +158,16 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def getRunTime(self):
         runtime = str(self.runtimeBox.value())
         return runtime
+
+    def liftDropExecute(self):
+        #print ('Lift/Drop Button Clicked')
+        if self.jointForce != 15:
+            self.jointForce = 15
+            self.pub.publish(self.jointForce)
+            self.liftDropButton.setText("Drop")
+            print ('Platform Dropped!')
+        else:
+            self.jointForce = 0
+            self.pub.publish(self.jointForce)
+            self.liftDropButton.setText("Lift")
+            print ('Platform Lifted!')

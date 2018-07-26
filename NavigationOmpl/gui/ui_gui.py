@@ -119,6 +119,9 @@ class Ui_MainWindow(object):
         self.runtimeBox.setProperty("value", 1.0)
         self.runtimeBox.setObjectName("runtimeBox")
         self.horizontalLayout.addWidget(self.runtimeBox)
+        self.liftDropButton = QtWidgets.QPushButton(self.centralwidget)
+        self.liftDropButton.setGeometry(QtCore.QRect(610, 520, 101, 51))
+        self.liftDropButton.setObjectName("liftDropButton")
         MainWindow.setCentralWidget(self.centralwidget)
 
         self.retranslateUi(MainWindow)
@@ -144,5 +147,6 @@ class Ui_MainWindow(object):
         self.mapLabel_2.setText(_translate("MainWindow", "Manual controler:"))
         self.Plannerlabel.setText(_translate("MainWindow", "planner"))
         self.RunTimeLabel.setText(_translate("MainWindow", "runtime"))
+        self.liftDropButton.setText(_translate("MainWindow", "Lift/Drop"))
 
 import resources_rc

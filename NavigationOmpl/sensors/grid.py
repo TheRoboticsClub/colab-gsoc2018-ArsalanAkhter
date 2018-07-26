@@ -26,6 +26,7 @@ class Grid:
 		self.worldPathArraySmooth = 0;
 		self.worldPathArrayIdx = 0;
 
+
 	def initPose(self, x, y, angle):
 		print("RX:", x, "RY:", y)
 		(gridX, gridY) = self.worldToGrid(x, y)
@@ -55,12 +56,7 @@ class Grid:
 		RTz = self.RTz(pi / 2, 0, 0, 0)
 		RTxy = RTx * RTy
 		RTxyz = RTxy * RTz
-		# print "Transform: " +str(RTxyz)
 		return RTxyz
-
-		#RTx = self.RTx(pi, 0, 0, 0)
-		#RTz = self.RTz(-pi/2, self.gWidth/2, -self.gHeight/2, 0)
-		#return RTx*RTz
 
 	def RTGridWorld(self):
 		RTx = self.RTx(0, self.wWidth/2, 0, 0)
@@ -68,7 +64,6 @@ class Grid:
 		RTz = self.RTz(-pi/2, 0, 0, 0)
 		RTxy = RTy*RTx
 		RTxyz = RTz*RTxy
-		#print "Transform: " +str(RTxyz)
 		return RTxyz
 
 	def worldToGrid(self, worldX, worldY):
@@ -89,16 +84,9 @@ class Grid:
 		gridY = gridY * self.wHeight/self.gHeight
 		orig_poses = np.matrix([[gridX], [gridY], [0], [-1]])
 		final_poses = self.RTGridWorld() * orig_poses
-		print "final poses: " + str(final_poses)
         
 		worldX = final_poses.flat[0]
 		worldY = final_poses.flat[1]
-		print "gridX: " + str(gridX)
-		print "gridY: " + str(gridY)
-
-		print "worldX: " + str(worldX)
-		print "worldY: " + str(worldY)
-
 		return (worldX, worldY)
 
 
@@ -173,29 +161,6 @@ class Grid:
 		self.grid[y][x] = val
 		self.lock.release()
 
-	def setWorldPathArray(self, worldPathArray):
-		self.lock.acquire()
-		self.worldPathArraySmooth = worldPathArray
-		self.lock.release()
-
-	def getWorldPathArray(self):
-		self.lock.acquire()
-		tmp = self.worldPathArraySmooth
-		self.lock.release()
-		return tmp
-
-
-	def setWorldPathArrayIdx(self, worldPathArrayIdx):
-		self.lock.acquire()
-		self.worldPathArrayIdx = worldPathArrayIdx
-		self.lock.release()
-
-	def getWorldPathArrayIdx(self):
-		self.lock.acquire()
-		tmp = self.worldPathArrayIdx
-		self.lock.release()
-		return tmp
-
 	def resetPath(self):
 		self.lock.acquire()
 		self.path = np.zeros([self.gWidth, self.gHeight])
@@ -222,3 +187,25 @@ class Grid:
 			nCopy = self.grid
 		cv2.imshow("Grid Field", nCopy)
 		self.lock.release()
+
+	def setWorldPathArray(self, worldPathArray):
+		self.lock.acquire()
+		self.worldPathArraySmooth = worldPathArray
+		self.lock.release()
+
+	def getWorldPathArray(self):
+		self.lock.acquire()
+		tmp = self.worldPathArraySmooth
+		self.lock.release()
+		return tmp
+
+	def setWorldPathArrayIdx(self, worldPathArrayIdx):
+		self.lock.acquire()
+		self.worldPathArrayIdx = worldPathArrayIdx
+		self.lock.release()
+
+	def getWorldPathArrayIdx(self):
+		self.lock.acquire()
+		tmp = self.worldPathArrayIdx
+		self.lock.release()
+		return tmp
