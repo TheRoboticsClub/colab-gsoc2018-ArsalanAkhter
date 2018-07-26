@@ -326,6 +326,19 @@
      </item>
     </layout>
    </widget>
+   <widget class="QPushButton" name="liftDropButton">
+    <property name="geometry">
+     <rect>
+      <x>610</x>
+      <y>520</y>
+      <width>101</width>
+      <height>51</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Lift/Drop</string>
+    </property>
+   </widget>
   </widget>
  </widget>
  <resources>

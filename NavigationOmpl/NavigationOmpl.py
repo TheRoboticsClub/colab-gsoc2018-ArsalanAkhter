@@ -38,11 +38,11 @@ from threadMotors import Velocity
 from sensors.sensor import Sensor
 from sensors.grid import Grid
 
-from interfaces.motors import PublisherMotors
+
+from interfaces.motors import PublisherMotors		
 from interfaces.pose3d import ListenerPose3d
 
 import signal
-
 
 signal.signal(signal.SIGINT, signal.SIG_DFL)
 
@@ -65,12 +65,6 @@ if __name__ == '__main__':
 
     removeMapFromArgs()
 
-#    cfg = config.load(sys.argv[1])
-#    #starting comm
-#    jdrc= comm.init(cfg, 'TeleTaxi')
-
-#    motors = jdrc.getMotorsClient ("TeleTaxi.Motors")
-#    pose = jdrc.getPose3dClient("TeleTaxi.Pose3D")
     motors = PublisherMotors("/amazon_warehouse_robot/cmd_vel", 0.5, 0.01)
     pose = ListenerPose3d("/amazon_warehouse_robot/odom")
 

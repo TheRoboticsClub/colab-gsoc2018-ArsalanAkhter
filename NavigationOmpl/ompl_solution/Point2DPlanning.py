@@ -145,17 +145,13 @@ class Plane2DEnvironment:
         # if not self.si:
         #     return
         p = self.pdef.getSolutionPath()
-        p.interpolate(0)
+        p.interpolate()
         pathlist = [[] for i in range(2)]
         for i in range(p.getStateCount()):
             w = min(self.maxWidth_, int(p.getState(i)[0]))
             h = min(self.maxHeight_, int(p.getState(i)[1]))
             pathlist[0].append(w)
             pathlist[1].append(h)
-        #path = [[] for i in range(2)]
-        #sigma = 10
-        #path[0] = gaussian_filter1d(pathlist[0], sigma)
-        #path[1] = gaussian_filter1d(pathlist[1], sigma)
         return pathlist
 
     def save(self, filename):

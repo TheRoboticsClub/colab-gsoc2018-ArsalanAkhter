@@ -6,6 +6,7 @@ import sys, math
 import threading
 from PyQt5 import QtGui, QtCore
 from PyQt5.QtWidgets import QWidget, QLabel
+from PyQt5.QtCore import QPointF
 import cv2
 
 class Map(QWidget):
@@ -55,7 +56,7 @@ class Map(QWidget):
     def initUI(self):
         self.map = cv2.imread(self.mapPath, cv2.IMREAD_GRAYSCALE)
         print(self.map.shape)
-        self.map = cv2.resize(self.map, (400, 400))
+        #self.map = cv2.resize(self.map, (400, 400))
         image = QtGui.QImage(self.map.data, self.map.shape[1], self.map.shape[0], self.map.shape[1], QtGui.QImage.Format_Indexed8);
         self.pixmap = QtGui.QPixmap.fromImage(image)
         self.height = self.pixmap.height()
@@ -146,6 +147,7 @@ class Map(QWidget):
 
         self.setPainterSettings(painter, QtCore.Qt.green, 3)
         self.paintPath(painter, path)
+
 
         self.paintPosition(pos[0], pos[1], grid.getAngle(), copy, painter)
 

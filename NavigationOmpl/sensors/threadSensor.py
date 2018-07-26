@@ -24,22 +24,20 @@ time_cycle = 80
 
 class ThreadSensor(threading.Thread):
 
-    def __init__(self, sensor,  kill_event):
+    def __init__(self, sensor, kill_event):
         self.sensor = sensor
-        #threading.Thread.__init__(self)
-        #self.algorithm = algorithm
-        self.kill_event = kill_event
-        threading.Thread.__init__(self, args=kill_event)
+	self.kill_event = kill_event
+	threading.Thread.__init__(self, args=kill_event)
 
     def run(self):
-        while (not self.kill_event.is_set()):
+        while (True):
 
             start_time = datetime.now()
 
             self.sensor.update()
 
-            if (self.sensor.isPlayButton()):
-                self.algorithm.execute();
+            #if (self.sensor.isPlayButton()):
+            #    self.algorithm.execute();
 
             finish_Time = datetime.now()
 
