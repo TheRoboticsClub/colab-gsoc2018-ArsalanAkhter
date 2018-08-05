@@ -8,7 +8,7 @@ import math
 import matplotlib.pyplot as plt
 
 k = 0.1  # look forward gain
-Lfc = 0.4  # look-ahead distance
+Lfc = 1.0  # look-ahead distance
 Kp = 0.5  # speed propotional gain
 dt = 0.4  # [s]
 L = 0.675/2  # [m] wheel base of vehicle
@@ -29,6 +29,7 @@ class State:
 
 def update_state(state, a, delta):
 
+    state.v = state.v + a * dt
     state.x = state.x + state.v * math.cos(state.yaw) * dt
     state.y = state.y + state.v * math.sin(state.yaw) * dt
     state.yaw = state.yaw + state.v / L * math.tan(delta) * dt
@@ -36,7 +37,6 @@ def update_state(state, a, delta):
         state.yaw -= 6.28
     if state.yaw < -3.14:
         state.yaw += 6.28
-    state.v = state.v + a * dt
     state.w = state.w + delta * dt
     state.r, state.phi = cartesian_to_polar(state.x, state.y)
     return state
@@ -95,7 +95,7 @@ def calc_target_index(state, cx, cy):
     # search look ahead target point index
     while Lf > L and (ind + 1) < len(cx):
         dx = cx[ind + 1] - cx[ind]
-        dy = cx[ind + 1] - cx[ind]
+        dy = cy[ind + 1] - cy[ind]
         L += math.sqrt(dx ** 2 + dy ** 2)
         ind += 1
 
