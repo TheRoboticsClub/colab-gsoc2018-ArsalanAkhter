@@ -21,7 +21,7 @@ class Grid:
 		self.mapAngle = frame.mapAngle()
 
 		self.grid = np.empty([self.gWidth, self.gHeight], float)
-		self.path = np.zeros([self.gWidth, self.gHeight])
+		self.path = np.zeros([self.gHeight, self.gWidth])
 
 		self.worldPathArraySmooth = 0;
 		self.worldPathArrayIdx = 0;
@@ -126,6 +126,7 @@ class Grid:
 
 	def setPathVal(self, x, y, val):
 		self.lock.acquire()
+		print self.path.shape
 		self.path[y][x] = val
 		self.lock.release()
 
@@ -163,7 +164,7 @@ class Grid:
 
 	def resetPath(self):
 		self.lock.acquire()
-		self.path = np.zeros([self.gWidth, self.gHeight])
+		self.path = np.zeros([self.gHeight, self.gWidth])
 		self.pathFinded = False
 		self.lock.release()
 

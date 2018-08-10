@@ -86,6 +86,7 @@ class MyAlgorithm(threading.Thread):
         self.destinyXInWorldFrame = 0
         self.destinyYInWorldFrame = 0
 
+        self.gotoPointChecked = False
 
         # Debugging Info Variables
         self.printK_V = 0
@@ -147,7 +148,7 @@ class MyAlgorithm(threading.Thread):
         print (h)
         print (w)
         mapppm = np.zeros((h,w,3))
-        kernel = np.ones((5,5),np.uint8)    
+        kernel = np.ones((15,15),np.uint8)
         erosion = cv2.erode(mapIm,kernel,iterations = 1) 
         #cv2.imshow('image',erosion)
         for i in range(h):
@@ -625,19 +626,20 @@ class MyAlgorithm(threading.Thread):
         curr_w = 0
         x1, y1 = self.worldToRobot2D(self.curr_state.x, self.curr_state.y)
         e = self.computeThetaInRobotFrame(x1, y1)
-        if abs(e) > 0.1:
+        req_e = 0.05
+        if abs(e) > req_e:
             self.vel.setV(0)
             alpha = 0.4
             #K = 0.5*(1 - math.exp(-alpha*math.pow(e,2)/abs(e)))
             K = 0.5
             self.printYawDiff = e
             self.printK_W = K
-            if e > 0.1 and e <= math.pi:
+            if e > req_e and e <= math.pi:
                 if e - math.pi/2 < math.pi/2:
                     curr_w = K * e
                 else:
                     curr_w = -K * e
-            if -math.pi <= e < -0.1:
+            if -math.pi <= e < -req_e:
                 if e - math.pi/2 < math.pi/2:
                     curr_w = K * e
                 else:
@@ -653,7 +655,7 @@ class MyAlgorithm(threading.Thread):
 
             self.vel.setW(curr_w)
             self.printCurrW = curr_w
-        if abs(e) <= 0.1:
+        if abs(e) <= req_e:
             #print "Robot yaw corrected."
             self.vel.setW(0)
             self.printCurrW = 0
@@ -669,16 +671,17 @@ class MyAlgorithm(threading.Thread):
         self.posCorrected = False
         x1, y1 = self.worldToRobot2D(self.curr_state.x, self.curr_state.y)
         dist = math.sqrt(x1**2 + y1**2)
-        if abs(dist) > 0.1:
+        req_dist= 0.01
+        if abs(dist) > req_dist:
             self.vel.setV(0)
             alpha = 0.9
             #K = 5*(1 - math.exp(-alpha*math.pow(dist,2)/abs(dist)))
-            K = 0.5
+            K = 0.3
             self.printDistanceDiff = dist
             self.printK_V = K
             self.vel.setV(K * dist)
             self.printCurrV = K * dist
-        if abs(dist) <= 0.1:
+        if abs(dist) <= req_dist:
             #print "Robot yaw corrected."
             self.vel.setV(0)
             self.printCurrV = 0
@@ -691,19 +694,13 @@ class MyAlgorithm(threading.Thread):
         once you have generated the shorter path.
         This method will be periodically called after you press the GO! button. """
 
-    def execute(self):
-        #self.destinyXInWorldFrame = self.curr_state.x
-        #self.destinyYInWorldFrame = self.curr_state.y
-        #self.destinyXInWorldFrame, self.destinyYInWorldFrame = self.worldToRobot2D(self.destinyXInWorldFrame,
-        #                                                                           self.destinyYInWorldFrame)
+
+    def moveOnPath(self):
         self.correctYawInRobotFrame()
-        #self.correct_yaw()
         if self.yawCorrected:
             self.correctPosInRobotFrame()
-            #self.yawCorrected = False
-            #self.correctRelativeDistDiff()
-        if self.yawCorrected and self.posCorrected and self.lastIndex!=self.target_ind:
-           self.computeNextState()
+        if self.yawCorrected and self.posCorrected and self.lastIndex != self.target_ind:
+            self.computeNextState()
         if self.yawCorrected and self.posCorrected and self.lastIndex == self.target_ind:
             print "last Index Reached!"
             self.vel.setV(0)
@@ -711,3 +708,31 @@ class MyAlgorithm(threading.Thread):
         else:
             self.printDebugInfo()
             self.yawCorrected = False
+
+    def setGotoPointFlag(self, isChecked):
+        self.gotoPointChecked = isChecked
+
+    def gotoPoint(self):
+        dest = self.grid.getDestiny()
+        x = dest[0]
+        y = dest[1]
+        rX, rY = self.grid.gridToWorld(x, y)
+        self.curr_state.x = rX
+        self.curr_state.y = rY
+        self.correctYawInRobotFrame()
+        if self.yawCorrected:
+            self.correctPosInRobotFrame()
+        if self.yawCorrected and self.posCorrected:
+            print "GoToPoint Reached!"
+            self.vel.setV(0)
+            self.vel.setW(0)
+            self.gotoPointChecked = False
+        else:
+            self.printDebugInfo()
+            self.yawCorrected = False
+
+    def execute(self):
+        if self.gotoPointChecked:
+            self.gotoPoint()
+        else:
+            self.moveOnPath()

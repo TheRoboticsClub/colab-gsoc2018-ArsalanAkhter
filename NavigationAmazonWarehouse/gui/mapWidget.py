@@ -50,7 +50,7 @@ class Map(QWidget):
                 self.originY = int(lineSplit[1])
             elif (lineSplit[0] == "angle"):
                 self.mapAngle = int(lineSplit[1]) % 360
-                print("Grados:", self.mapAngle)
+                print("Map Angle:", self.mapAngle)
 
 
     def initUI(self):
@@ -75,6 +75,8 @@ class Map(QWidget):
         self.parent.grid.setDestiny(x, y)
         self.parent.grid.resetPath()
         self.parent.grid.resetGrid()
+        self.parent.setDestinyXYValues("{0:.2f}".format(rX),"{0:.2f}".format(rY))
+
 
 
     def setPainterSettings(self, painter, color, width):
