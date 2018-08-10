@@ -62,6 +62,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.jointForce = 0
         self.pub = rospy.Publisher('amazon_warehouse_robot/joint_cmd', Float32, queue_size=10)
 
+        self.gotoPointButton.clicked.connect(self.gotoPointExecute)
+        self.gotoPointButton.setCheckable(True)
+
     def setSensor(self, sensor):
         self.sensor = sensor
            
@@ -161,13 +164,20 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def liftDropExecute(self):
         #print ('Lift/Drop Button Clicked')
-        if self.jointForce != 15:
-            self.jointForce = 15
+        if self.jointForce != 25:
+            self.jointForce = 25
             self.pub.publish(self.jointForce)
             self.liftDropButton.setText("Drop")
-            print ('Platform Dropped!')
+            print ('Platform Lifted!')
         else:
             self.jointForce = 0
             self.pub.publish(self.jointForce)
             self.liftDropButton.setText("Lift")
-            print ('Platform Lifted!')
+            print ('Platform Dropped!')
+
+    def gotoPointExecute(self):
+        self.algorithm.setGotoPointFlag(self.playButton.isChecked())
+
+    def setDestinyXYValues(self,newX,newY):
+        self.XValue.setText(str(newX))
+        self.YValue.setText(str(newY))

@@ -120,8 +120,11 @@ class Ui_MainWindow(object):
         self.runtimeBox.setObjectName("runtimeBox")
         self.horizontalLayout.addWidget(self.runtimeBox)
         self.liftDropButton = QtWidgets.QPushButton(self.centralwidget)
-        self.liftDropButton.setGeometry(QtCore.QRect(610, 520, 101, 51))
+        self.liftDropButton.setGeometry(QtCore.QRect(600, 550, 101, 51))
         self.liftDropButton.setObjectName("liftDropButton")
+        self.gotoPointButton = QtWidgets.QPushButton(self.centralwidget)
+        self.gotoPointButton.setGeometry(QtCore.QRect(600, 480, 101, 51))
+        self.gotoPointButton.setObjectName("gotoPointButton")
         MainWindow.setCentralWidget(self.centralwidget)
 
         self.retranslateUi(MainWindow)
@@ -148,5 +151,6 @@ class Ui_MainWindow(object):
         self.Plannerlabel.setText(_translate("MainWindow", "planner"))
         self.RunTimeLabel.setText(_translate("MainWindow", "runtime"))
         self.liftDropButton.setText(_translate("MainWindow", "Lift/Drop"))
+        self.gotoPointButton.setText(_translate("MainWindow", "GoToPoint"))
 
 import resources_rc
