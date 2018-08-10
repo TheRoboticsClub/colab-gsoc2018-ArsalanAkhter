@@ -17,36 +17,12 @@ L = 0.675/2  # [m] wheel base of vehicle
 show_animation = False
 class State:
 
-    def __init__(self, x=0.0, y=0.0, yaw=0.0, r = 0.0, phi = 0.0, v=0.0, w=0.0,):
+    def __init__(self, x=0.0, y=0.0, yaw=0.0, v=0.0, w=0.0,):
         self.x = x
         self.y = y
         self.yaw = yaw
-        self.r = r
-        self.phi = phi
         self.v = v
         self.w = w
-
-
-def update_state(state, a, delta):
-
-    state.v = state.v + a * dt
-    state.x = state.x + state.v * math.cos(state.yaw) * dt
-    state.y = state.y + state.v * math.sin(state.yaw) * dt
-    state.yaw = state.yaw + state.v / L * math.tan(delta) * dt
-    if state.yaw > 3.14:
-        state.yaw -= 6.28
-    if state.yaw < -3.14:
-        state.yaw += 6.28
-    state.w = state.w + delta * dt
-    state.r, state.phi = cartesian_to_polar(state.x, state.y)
-    return state
-
-
-def PIDControl(target, current):
-    a = Kp * (target - current)
-
-    return a
-
 
 def pure_pursuit_control(state, cx, cy, pind):
 
@@ -100,13 +76,3 @@ def calc_target_index(state, cx, cy):
         ind += 1
 
     return ind
-
-def cartesian_to_polar(x, y):
-    r = np.sqrt(x ** 2 + y ** 2)
-    phi = np.arctan2(y, x)
-    return (r, phi)
-
-def polar_to_cartesian(r, phi):
-    x = r * np.cos(phi)
-    y = r * np.sin(phi)
-    return (x, y)
