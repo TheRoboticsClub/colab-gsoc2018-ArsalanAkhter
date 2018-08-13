@@ -1,11 +1,12 @@
-# GLOBAL NAVIGATION PRACTICE
+# AMAZON WAREHOUSE NAVIGATION PRACTICE
 
-The objective of this practice is to implement the logic of a Gradient Path 
-Planning (GPP) algorithm. Global navigation through GPP, consists of:
+(This practice have been adopted from global_navigation practice.)
+The objective of this practice is to navigate an amazon-warehouse like environment.
+The practice using OMPL for planning the path between two points:
 
-- Selected a destination, the GPP algorithm is responsible for finding the 
-shortest path to it, avoiding, in the case of this practice, everything that is 
-not road.
+- Selected a destination, OMPL is responsible for finding the 
+shortest path to it, avoiding the obstacles.
+
 - Once the path has been selected, the logic necessary to follow this path and 
 reach the objective must be implemented in the robot.
 
@@ -14,8 +15,8 @@ autonomously and following the shortest path.
 
 The solution can integrate one or more of the following levels
 of difficulty, as well as any other one that occurs to you:
-* Reach the goal.
-* Optimize the way to find the shortest path.
+* Reach the PickUp up point.
+* Pick up a pallet from pickup point and drop it in the drop off point.
 * Arrive as quickly as possible to the destination.
 
 ## E X E C U T I O N
@@ -23,12 +24,12 @@ of difficulty, as well as any other one that occurs to you:
 Follow these simple steps to run the practice:
 1. Launch Gazebo with roslaunch
 ```
-$ roslaunch taxi-holo.launch
+$ roslaunch /opt/jderobot/share/jderobot/launch/amazon-warehouse.launch  
 ```
 
 2. Execute the practice's component indicating the configuration file for the map:
 ```
-$ python2 globalNavigation.py taxiMap.conf
+$  python2 NavigationOmpl.py taxiMap.conf
 ```
 
 3. Additionally, you can execute the referee component to check the efficiency 
@@ -117,7 +118,7 @@ coordinates and returns a tuple with the equivalent coordinates in the map: (gri
 
 
 ## Demonstration video
-
+https://www.youtube.com/watch?v=YG0K_dUXDSg
 
 ## Attributions
 * * Copyright (C) 2016 CC-BY-4.0 Samuel Rey (@ reysam93)
