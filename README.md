@@ -8,7 +8,7 @@ Currently, this repo has four packages to control and interact with the amazon r
 Follow these simple steps to run the practice:
 1. Launch Gazebo with roslaunch
 ```
-$ roslaunch /opt/jderobot/share/jderobot/launch/amazon-warehouse.launch  
+$ roslaunch /opt/jderobot/share/jderobot/gazebo/launch/amazonrobot_1_warehouse.launch  
 ```
 
 2. Execute the practice's component indicating the configuration file for the map:
